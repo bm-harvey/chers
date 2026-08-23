@@ -164,13 +164,8 @@ impl<'a> GameViewer {
     }
 
     pub fn print_legal_moves(&self, game: &Game, square: usize) -> () {
-
-        
-
         // todo - fix piece detection
         let legal_squares = game.board_state.queen_movement_allowed_mask(square);
-
-
 
         let mut out_strings = vec![String::from("\u{2820}"); 64];
 
@@ -429,7 +424,7 @@ impl BoardState {
         square_mask & row_mask == 0
     }
 
-    fn dbg_mask(mask: u64) {
+    pub fn dbg_mask(mask: u64) {
         println!();
         for rank in (0..8).rev() {
             for file in 0..8 {
@@ -791,5 +786,18 @@ impl BoardState {
     }
     pub fn black_kings(&self) -> u64 {
         self.pieces[Self::BLACK_KINGS_IDX]
+    }
+
+    pub fn count_material(&self) -> f32 {
+        (self.white_pawns().count_ones() as f32) * 1_f32
+            + (self.white_rooks().count_ones() as f32) * 5_f32
+            + (self.white_knights().count_ones() as f32) * 3_f32
+            + (self.white_bishops().count_ones() as f32) * 3_f32
+            + (self.white_queens().count_ones() as f32) * 3_f32
+            - (self.black_pawns().count_ones() as f32) * 1_f32
+            - (self.black_rooks().count_ones() as f32) * 5_f32
+            - (self.black_knights().count_ones() as f32) * 3_f32
+            - (self.black_bishops().count_ones() as f32) * 3_f32
+            - (self.black_queens().count_ones() as f32) * 3_f32
     }
 }
