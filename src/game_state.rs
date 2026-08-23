@@ -113,6 +113,28 @@ impl<'a> GameViewer {
         self.render_type = render_type;
         self
     }
+    pub fn print_square_idxs(&self) -> () {
+
+        println!("    a  b  c  d  e  f  g  h");
+        println!();
+        for rank in (0..8).rev() {
+            print!("{}  ", rank + 1);
+            for file in 0..8 {
+                let square = 8 * rank + file;
+
+                if square < 10 {
+                    print!("{}  ", square);
+                } else {
+                    print!("{} ", square);
+                }
+            }
+            println!("  {}", rank + 1);
+        }
+        println!();
+        println!("    a  b  c  d  e  f  g  h");
+        println!();
+    }
+
     pub fn plain_print(&self, game: &Game) -> () {
         let mut out_chars = ['*'; 64];
 
