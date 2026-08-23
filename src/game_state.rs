@@ -317,9 +317,9 @@ impl BoardState {
             }
             Some(promotion_piece) => {
                 let (pieces_idx, other_pieces_idxs) = if self.white_to_move {
-                    (0, 6..=11)
+                    (Self::WHITE_PAWNS_IDX, Self::BLACK_PAWNS_IDX..=Self::BLACK_KINGS_IDX)
                 } else {
-                    (6, 0..=6)
+                    (Self::BLACK_PAWNS_IDX, Self::WHITE_PAWNS_IDX..=Self::WHITE_KINGS_IDX)
                 };
 
                 let move_mask = 0b1_u64 << square_1;
