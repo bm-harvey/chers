@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::error::Error;
 use std::{char, fmt};
 
@@ -18,11 +19,13 @@ impl fmt::Display for ChersError {
 
 impl Error for ChersError {}
 
+#[derive(Debug)]
 pub enum PieceColor {
     White,
     Black,
 }
 
+#[derive(Debug)]
 pub enum PieceType {
     Pawn,
     Rook,
@@ -114,7 +117,6 @@ impl<'a> GameViewer {
         self
     }
     pub fn print_square_idxs(&self) -> () {
-
         println!("    a  b  c  d  e  f  g  h");
         println!();
         for rank in (0..8).rev() {
@@ -160,13 +162,36 @@ impl<'a> GameViewer {
         println!("   a b c d e f g h");
         println!();
     }
-    pub fn print(&self, game: &Game) -> () {
-        let mut out_chars = ['*'; 64];
+
+    pub fn print_legal_moves(&self, game: &Game, square: usize) -> () {
+        let legal_squares = game.board_state.rook_movement_allowed_mask(square);
+
+        BoardState::dbg_mask(legal_squares);
+
+        let mut out_strings = vec![String::from("\u{2820}"); 64];
 
         for square in 0..64 {
-            out_chars[square] = match game.board_state.piece_in_square(square) {
-                Some((color, piece)) => piece.render_char(&color, &self.render_type),
-                None => '\u{00B7}',
+            let square_valid = (legal_squares & (0b1_u64 << square)) != 0;
+
+            out_strings[square] = match game.board_state.piece_in_square(square) {
+                Some((color, piece)) => {
+                    let raw_string = piece.render_string(&PieceColor::White, &self.render_type);
+                    if square_valid {
+                        raw_string.purple().to_string()
+                    } else {
+                        match color {
+                            PieceColor::White => raw_string.red().to_string(),
+                            PieceColor::Black => raw_string.blue().to_string(),
+                        }
+                    }
+                }
+                None => {
+                    if square_valid {
+                        "\u{2820}".purple().to_string()
+                    } else {
+                        "\u{2820}".to_string()
+                    }
+                }
             };
         }
 
@@ -177,7 +202,38 @@ impl<'a> GameViewer {
             for file in 0..8 {
                 let square = 8 * rank + file;
 
-                print!("{} ", out_chars[square]);
+                print!("{} ", out_strings[square]);
+            }
+            println!(" {}", rank + 1);
+        }
+        println!();
+        println!("   a b c d e f g h");
+        println!();
+    }
+    pub fn print(&self, game: &Game) -> () {
+        let mut out_strings = vec![String::from("\u{2820}"); 64];
+
+        for square in 0..64 {
+            out_strings[square] = match game.board_state.piece_in_square(square) {
+                Some((color, piece)) => {
+                    let raw_string = piece.render_string(&PieceColor::White, &self.render_type);
+                    match color {
+                        PieceColor::White => raw_string.red().to_string(),
+                        PieceColor::Black => raw_string.blue().to_string(),
+                    }
+                }
+                None => String::from("\u{2820}"),
+            };
+        }
+
+        println!("   a b c d e f g h");
+        println!();
+        for rank in (0..8).rev() {
+            print!("{}  ", rank + 1);
+            for file in 0..8 {
+                let square = 8 * rank + file;
+
+                print!("{} ", out_strings[square]);
             }
             println!(" {}", rank + 1);
         }
@@ -338,6 +394,129 @@ impl BoardState {
         }
     }
 
+    fn square_exists_left(square: usize) -> bool {
+        square % 8 > 0
+    }
+    fn square_exists_right(square: usize) -> bool {
+        square % 8 < 7
+    }
+    fn square_exists_down(square: usize) -> bool {
+        square / 8 > 0
+    }
+    fn square_exists_up(square: usize) -> bool {
+        square / 8 < 7
+    }
+
+    fn square_exists_left_mask(square_mask: u64) -> bool {
+        let row_mask =
+            0b_00000001_00000001_00000001_00000001_00000001_00000001_00000001_00000001_u64;
+
+        square_mask & row_mask == 0
+    }
+
+    fn square_exists_right_mask(square_mask: u64) -> bool {
+        let row_mask =
+            0b_10000000_10000000_10000000_10000000_10000000_10000000_10000000_10000000_u64;
+
+        square_mask & row_mask == 0
+    }
+    fn square_exists_down_mask(square_mask: u64) -> bool {
+        let row_mask = 0b1111_1111_u64;
+        square_mask & row_mask == 0
+    }
+    fn square_exists_up_mask(square_mask: u64) -> bool {
+        let row_mask = 0b1111_1111_u64 << (8 * 7);
+        square_mask & row_mask == 0
+    }
+
+    fn dbg_mask(mask: u64) {
+        println!();
+        for rank in (0..8).rev() {
+            for file in 0..8 {
+                let square = 8 * rank + file;
+
+                let square_on = (mask & (0b1_u64 << square)) != 0;
+
+                if square_on {
+                    print!("1 ");
+                } else {
+                    print!("0 ");
+                }
+            }
+            println!();
+        }
+    }
+
+    pub fn rook_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+        let mut mask = 0b0_u64;
+
+        let mut own_occupancy = self.white_occupancy();
+        let mut other_occupancy = self.black_occupancy();
+        if !self.white_to_move {
+            std::mem::swap(&mut own_occupancy, &mut other_occupancy);
+        }
+
+        let mut current_square_mask = 0b1_u64 << starting_square;
+        while BoardState::square_exists_up_mask(current_square_mask) {
+            current_square_mask = current_square_mask << 8;
+            if (own_occupancy & current_square_mask) != 0 {
+                dbg!();
+                break;
+            } else if (other_occupancy & current_square_mask) != 0 {
+                dbg!();
+                mask = mask | current_square_mask;
+                break;
+            } else {
+                dbg!();
+                mask = mask | current_square_mask;
+            }
+        }
+
+        let mut current_square_mask = 0b1_u64 << starting_square;
+        while BoardState::square_exists_down_mask(current_square_mask) {
+            current_square_mask = current_square_mask >> 8;
+            if (own_occupancy & current_square_mask) != 0 {
+                break;
+            }
+            if (other_occupancy & current_square_mask) != 0 {
+                mask = mask | current_square_mask;
+                break;
+            } else {
+                mask = mask | current_square_mask;
+            }
+        }
+
+        let mut current_square_mask = 0b1_u64 << starting_square;
+        while BoardState::square_exists_left_mask(current_square_mask) {
+            current_square_mask = current_square_mask >> 1;
+            if (own_occupancy & current_square_mask) != 0 {
+                break;
+            }
+            if (other_occupancy & current_square_mask) != 0 {
+                mask = mask | current_square_mask;
+                break;
+            } else {
+                mask = mask | current_square_mask;
+            }
+        }
+
+        let mut current_square_mask = 0b1_u64 << starting_square;
+        while BoardState::square_exists_right_mask(current_square_mask) {
+            current_square_mask = current_square_mask << 1;
+            if (own_occupancy & current_square_mask) != 0 {
+                break;
+            }
+            if (other_occupancy & current_square_mask) != 0 {
+                mask = mask | current_square_mask;
+                break;
+            } else {
+                mask = mask | current_square_mask;
+            }
+        }
+
+        mask
+    }
+
     pub fn apply_move_by_squares(
         &mut self,
         square_1: usize,
@@ -347,23 +526,29 @@ impl BoardState {
         match promotion_piece {
             None => {
                 let (pieces_idxs, other_pieces_idxs) = if self.white_to_move {
-                    (0..6, 6..12)
+                    (
+                        Self::WHITE_PAWNS_IDX..=Self::WHITE_KINGS_IDX,
+                        Self::BLACK_PAWNS_IDX..=Self::BLACK_PAWNS_IDX,
+                    )
                 } else {
-                    (6..12, 0..6)
+                    (
+                        Self::BLACK_PAWNS_IDX..=Self::BLACK_KINGS_IDX,
+                        Self::WHITE_PAWNS_IDX..=Self::WHITE_PAWNS_IDX,
+                    )
                 };
 
                 let move_mask = (0b1_u64 << square_1) | (0b1_u64 << square_2);
                 let capture_mask = 0b1_u64 << square_2;
 
                 for mask in self.pieces[pieces_idxs].iter_mut() {
-                    if Self::square_occupied_by(square_2, *mask) {
-                        *mask = *mask ^ capture_mask;
+                    if Self::square_occupied_by(square_1, *mask) {
+                        *mask = *mask ^ move_mask;
                         break;
                     }
                 }
                 for mask in self.pieces[other_pieces_idxs].iter_mut() {
-                    if Self::square_occupied_by(square_1, *mask) {
-                        *mask = *mask ^ move_mask;
+                    if Self::square_occupied_by(square_2, *mask) {
+                        *mask = *mask ^ capture_mask;
                         break;
                     }
                 }
