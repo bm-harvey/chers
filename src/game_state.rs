@@ -435,40 +435,40 @@ impl BoardState {
     }
 
     pub fn white_pawns(&self) -> u64 {
-        self.pieces[0]
+        self.pieces[Self::WHITE_PAWNS_IDX]
     }
     pub fn white_rooks(&self) -> u64 {
-        self.pieces[1]
+        self.pieces[Self::WHITE_ROOKS_IDX]
     }
     pub fn white_knights(&self) -> u64 {
-        self.pieces[2]
+        self.pieces[Self::WHITE_KNIGHTS_IDX]
     }
     pub fn white_bishops(&self) -> u64 {
-        self.pieces[3]
+        self.pieces[Self::WHITE_BISHOPS_IDX]
     }
     pub fn white_queens(&self) -> u64 {
-        self.pieces[4]
+        self.pieces[Self::WHITE_QUEENS_IDX]
     }
     pub fn white_kings(&self) -> u64 {
-        self.pieces[5]
+        self.pieces[Self::WHITE_KINGS_IDX]
     }
 
     pub fn black_pawns(&self) -> u64 {
-        self.pieces[6]
+        self.pieces[Self::BLACK_PAWNS_IDX]
     }
     pub fn black_rooks(&self) -> u64 {
-        self.pieces[7]
+        self.pieces[Self::BLACK_ROOKS_IDX]
     }
     pub fn black_knights(&self) -> u64 {
-        self.pieces[8]
+        self.pieces[Self::BLACK_KNIGHTS_IDX]
     }
     pub fn black_bishops(&self) -> u64 {
-        self.pieces[9]
+        self.pieces[Self::BLACK_BISHOPS_IDX]
     }
     pub fn black_queens(&self) -> u64 {
-        self.pieces[10]
+        self.pieces[Self::BLACK_QUEENS_IDX]
     }
     pub fn black_kings(&self) -> u64 {
-        self.pieces[11]
+        self.pieces[Self::BLACK_KINGS_IDX]
     }
 }
