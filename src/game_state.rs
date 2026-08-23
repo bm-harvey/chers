@@ -1,4 +1,5 @@
 use std::{char, fmt};
+use std::error::Error;
 
 #[derive(Debug)]
 pub enum ChersError {
@@ -15,6 +16,8 @@ impl fmt::Display for ChersError {
     }
 }
 
+impl Error for ChersError {}
+
 pub enum PieceColor {
     White,
     Black,
@@ -30,6 +33,10 @@ pub enum PieceType {
 }
 
 impl PieceType {
+    pub fn render_string(&self, color: &PieceColor, render_type: &RenderType) -> String {
+        self.render_char(color, render_type).to_string()
+    }
+
     pub fn render_char(&self, color: &PieceColor, render_type: &RenderType) -> char {
         let (white_symbols, black_symbols) = match render_type {
             RenderType::ASCII => {
