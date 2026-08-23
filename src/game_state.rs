@@ -113,6 +113,31 @@ impl<'a> GameViewer {
         self.render_type = render_type;
         self
     }
+    pub fn plain_print(&self, game: &Game) -> () {
+        let mut out_chars = ['*'; 64];
+
+        for square in 0..64 {
+            out_chars[square] = match game.board_state.piece_in_square(square) {
+                Some((color, piece)) => piece.render_char(&color, &self.render_type),
+                None => '\u{00B7}',
+            };
+        }
+
+        println!("   a b c d e f g h");
+        println!();
+        for rank in (0..8).rev() {
+            print!("{}  ", rank + 1);
+            for file in 0..8 {
+                let square = 8 * rank + file;
+
+                print!("{} ", out_chars[square]);
+            }
+            println!(" {}", rank + 1);
+        }
+        println!();
+        println!("   a b c d e f g h");
+        println!();
+    }
     pub fn print(&self, game: &Game) -> () {
         let mut out_chars = ['*'; 64];
 
@@ -263,12 +288,12 @@ impl BoardState {
     const WHITE_BISHOPS_IDX: usize = 3;
     const WHITE_QUEENS_IDX: usize = 4;
     const WHITE_KINGS_IDX: usize = 5;
-    const BLACK_PAWNS_IDX: usize = 0;
-    const BLACK_ROOKS_IDX: usize = 1;
-    const BLACK_KNIGHTS_IDX: usize = 2;
-    const BLACK_BISHOPS_IDX: usize = 3;
-    const BLACK_QUEENS_IDX: usize = 4;
-    const BLACK_KINGS_IDX: usize = 5;
+    const BLACK_PAWNS_IDX: usize = 6;
+    const BLACK_ROOKS_IDX: usize = 7;
+    const BLACK_KNIGHTS_IDX: usize = 8;
+    const BLACK_BISHOPS_IDX: usize = 9;
+    const BLACK_QUEENS_IDX: usize = 10;
+    const BLACK_KINGS_IDX: usize = 11;
 
     pub fn new() -> Self {
         Self {
