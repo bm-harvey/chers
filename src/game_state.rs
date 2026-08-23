@@ -1,5 +1,5 @@
-use std::{char, fmt};
 use std::error::Error;
+use std::{char, fmt};
 
 #[derive(Debug)]
 pub enum ChersError {
@@ -297,7 +297,6 @@ impl BoardState {
         square_2: usize,
         promotion_piece: Option<PieceType>,
     ) -> Result<(), ChersError> {
-
         match promotion_piece {
             None => {
                 let (pieces_idxs, other_pieces_idxs) = if self.white_to_move {
@@ -324,9 +323,15 @@ impl BoardState {
             }
             Some(promotion_piece) => {
                 let (pieces_idx, other_pieces_idxs) = if self.white_to_move {
-                    (Self::WHITE_PAWNS_IDX, Self::BLACK_PAWNS_IDX..=Self::BLACK_KINGS_IDX)
+                    (
+                        Self::WHITE_PAWNS_IDX,
+                        Self::BLACK_PAWNS_IDX..=Self::BLACK_KINGS_IDX,
+                    )
                 } else {
-                    (Self::BLACK_PAWNS_IDX, Self::WHITE_PAWNS_IDX..=Self::WHITE_KINGS_IDX)
+                    (
+                        Self::BLACK_PAWNS_IDX,
+                        Self::WHITE_PAWNS_IDX..=Self::WHITE_KINGS_IDX,
+                    )
                 };
 
                 let move_mask = 0b1_u64 << square_1;
