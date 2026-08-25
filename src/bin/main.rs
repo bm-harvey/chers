@@ -1,9 +1,6 @@
 use anyhow::Result;
-use chers::game_state::BoardState;
-use chers::game_state::Game;
-use chers::game_state::GameViewer;
-use chers::game_state::PieceType;
-use chers::game_state::RenderType;
+//use chers::view::{GameViewer, RenderType};
+use chers::chess::Game;
 use rand::prelude::*;
 
 fn main() -> Result<()> {

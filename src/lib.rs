@@ -1,1 +1,3 @@
-pub mod game_state;
+pub mod chess;
+pub mod core;
+pub mod view;
