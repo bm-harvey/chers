@@ -135,10 +135,10 @@ impl GameViewer {
 
         let mut out_strings = vec![String::from("\u{2820}"); 64];
 
-        for square in 0..64 {
+        for square in 0..64_usize {
             let square_valid = (legal_squares & (0b1_u64 << square)) != 0;
 
-            out_strings[square] = match game.board_state().piece_in_square(square) {
+            out_strings[square as usize] = match game.board_state().piece_in_square(square) {
                 Some((color, piece)) => {
                     let raw_string = self.string_from_piece(&piece, &color);
                     if square_valid {
@@ -178,7 +178,7 @@ impl GameViewer {
     pub fn print(&self, game: &Game) -> () {
         let mut out_strings = vec![String::from("\u{2820}"); 64];
 
-        for square in 0..64 {
+        for square in 0..64_usize {
             out_strings[square] = match game.board_state().piece_in_square(square) {
                 Some((color, piece)) => {
                     let raw_string = self.string_from_piece(&piece, &PieceColor::White);
