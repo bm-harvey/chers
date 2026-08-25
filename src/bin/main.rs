@@ -25,12 +25,12 @@ fn main() -> Result<()> {
     let mut total_eval = 0_f32;
     let num_iters = 1_000_000;
 
+    let mut rng = rand::rng();
 
     let start = std::time::Instant::now();
-    for _ in 0..num_iters{
+    for _ in 0..num_iters {
         let mut game = Game::new();
         for _ in 0..100 {
-            let mut rng = rand::rng();
             let file_1 = rng.random_range(0_usize..8);
             let file_2 = rng.random_range(0_usize..8);
             let rank_1 = rng.random_range(0_usize..8);
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
 
             game.apply_move_by_coords(file_1, rank_1, file_2, rank_2, None)?;
 
-            total_eval +=  game.board_state().count_material();
+            total_eval += game.board_state().count_material();
         }
     }
 
