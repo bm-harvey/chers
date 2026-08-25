@@ -554,11 +554,11 @@ impl BoardState {
             + (self.white_rooks().count_ones() as f32) * 5_f32
             + (self.white_knights().count_ones() as f32) * 3_f32
             + (self.white_bishops().count_ones() as f32) * 3_f32
-            + (self.white_queens().count_ones() as f32) * 3_f32
+            + (self.white_queens().count_ones() as f32) * 9_f32
             - (self.black_pawns().count_ones() as f32) * 1_f32
             - (self.black_rooks().count_ones() as f32) * 5_f32
             - (self.black_knights().count_ones() as f32) * 3_f32
             - (self.black_bishops().count_ones() as f32) * 3_f32
-            - (self.black_queens().count_ones() as f32) * 3_f32
+            - (self.black_queens().count_ones() as f32) * 9_f32
     }
 }
