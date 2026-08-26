@@ -6,6 +6,7 @@ use colored::Colorize;
 pub enum RenderType {
     #[default]
     ASCII,
+    ASCIIGreek,
     Normal,
     Inverted, // for dark terminals
 }
@@ -48,6 +49,16 @@ impl GameViewer {
                         PieceType::Queen => 'q',
                         PieceType::King => 'k',
                     },
+                };
+            }
+            RenderType::ASCIIGreek => {
+                return match piece_type {
+                    PieceType::Pawn => '\u{03C0}',
+                    PieceType::Rook => '\u{03A0}',
+                    PieceType::Knight => '\u{0393}',
+                    PieceType::Bishop => '\u{0394}',
+                    PieceType::Queen => '\u{03C8}',
+                    PieceType::King => '+',
                 };
             }
             RenderType::Normal => (
@@ -151,11 +162,7 @@ impl GameViewer {
         let legal_squares = game.board_state().psuedo_legal_moves();
         let stop = start.elapsed().as_nanos();
 
-        let highlight_string = String::from("\u{2836}");
         let blank = String::from("\u{25A0}");
-        //let blank = String::from("\u{281B}");
-        //let blank = String::from("\u{2087}");
-        //let blank = String::from("\u{2820}");
 
         let mut default_out_strings = vec![blank.clone(); 64];
 
@@ -193,7 +200,7 @@ impl GameViewer {
 
                 out_strings[highlight] =
                     if (game.board_state().total_occupancy() & (0b1_u64 << highlight)) == 0 {
-                        highlight_string.magenta().to_string()
+                        blank.purple().to_string()
                     } else {
                         current_string.bold().underline().italic().to_string()
                     }

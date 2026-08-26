@@ -18,13 +18,13 @@ impl fmt::Display for ChersError {
 
 impl Error for ChersError {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PieceColor {
     White,
     Black,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PieceType {
     Pawn,
     Rook,
