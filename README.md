@@ -1,2 +1,3 @@
-# Chess Engine in Rust w/o using AI
-Just to prove to myself I can. 
+Me proving to myself i can still program rust without AI slop. 
+
+Ideally, I make an engine strong enough to beat me. 
