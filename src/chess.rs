@@ -369,12 +369,12 @@ impl BoardState {
 }
 
 impl BoardState {
-    pub fn queen_movement_allowed_mask(&self, starting_square: usize) -> u64 {
-        self.rook_movement_allowed_mask(starting_square)
-            | self.bishop_movement_allowed_mask(starting_square)
+    pub fn queen_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
+        self.rook_movement_allowed_mask(starting_square_mask)
+            | self.bishop_movement_allowed_mask(starting_square_mask)
     }
 
-    pub fn rook_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+    pub fn rook_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let mut own_occupancy = self.white_occupancy();
@@ -383,66 +383,55 @@ impl BoardState {
             std::mem::swap(&mut own_occupancy, &mut other_occupancy);
         }
 
-        let mut current_square_mask = 0b1_u64 << starting_square;
-        while bits::square_exists_up_mask(current_square_mask) {
-            current_square_mask = current_square_mask << 8;
-            if (own_occupancy & current_square_mask) != 0 {
-                break;
-            } else if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
+        let mut add_destination_and_should_break = |destination_mask: u64| {
+            if (own_occupancy & destination_mask) != 0 {
+                true
+            } else if (other_occupancy & destination_mask) != 0 {
+                mask = mask | destination_mask;
+                true
             } else {
-                mask = mask | current_square_mask;
+                mask = mask | destination_mask;
+                false
+            }
+        };
+
+        let mut current_square_mask = starting_square_mask;
+        while bits::square_exists_up_mask(current_square_mask)
+        {
+            current_square_mask = bits::move_one_up(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
+                break;
             }
         }
-
-        let mut current_square_mask = 0b1_u64 << starting_square;
-
-        while bits::square_exists_down_mask(current_square_mask) {
-            current_square_mask = current_square_mask >> 8;
-            if (own_occupancy & current_square_mask) != 0 {
+        let mut current_square_mask = starting_square_mask;
+        while bits::square_exists_down_mask(current_square_mask)
+        {
+            current_square_mask = bits::move_one_down(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
-
-        let mut current_square_mask = 0b1_u64 << starting_square;
-        while bits::square_exists_left_mask(current_square_mask) {
-            current_square_mask = current_square_mask >> 1;
-            if (own_occupancy & current_square_mask) != 0 {
+        let mut current_square_mask = starting_square_mask;
+        while bits::square_exists_left_mask(current_square_mask)
+        {
+            current_square_mask = bits::move_one_left(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
-
-        let mut current_square_mask = 0b1_u64 << starting_square;
-        while bits::square_exists_right_mask(current_square_mask) {
-            current_square_mask = current_square_mask << 1;
-            if (own_occupancy & current_square_mask) != 0 {
+        let mut current_square_mask = starting_square_mask;
+        while bits::square_exists_right_mask(current_square_mask)
+        {
+            current_square_mask = bits::move_one_right(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
 
         mask
     }
 
-    pub fn bishop_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+    pub fn bishop_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let mut own_occupancy = self.white_occupancy();
@@ -451,66 +440,55 @@ impl BoardState {
             std::mem::swap(&mut own_occupancy, &mut other_occupancy);
         }
 
-        let mut current_square_mask = 0b1_u64 << starting_square;
+        let mut add_destination_and_should_break = |destination_mask: u64| {
+            if (own_occupancy & destination_mask) != 0 {
+                true
+            } else if (other_occupancy & destination_mask) != 0 {
+                mask = mask | destination_mask;
+                true
+            } else {
+                mask = mask | destination_mask;
+                false
+            }
+        };
+
+        let mut current_square_mask = starting_square_mask;
         while bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            current_square_mask = current_square_mask << 7;
-            if (own_occupancy & current_square_mask) != 0 {
+            current_square_mask = bits::move_one_up_one_left(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            } else if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
 
-        let mut current_square_mask = 0b1_u64 << starting_square;
+        let mut current_square_mask = starting_square_mask;
         while bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            current_square_mask = current_square_mask >> 9;
-            if (own_occupancy & current_square_mask) != 0 {
+            current_square_mask = bits::move_one_down_one_left(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
 
-        let mut current_square_mask = 0b1_u64 << starting_square;
+        let mut current_square_mask = starting_square_mask;
         while bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            current_square_mask = current_square_mask << 9;
-            if (own_occupancy & current_square_mask) != 0 {
+            current_square_mask = bits::move_one_up_one_right(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
 
-        let mut current_square_mask = 0b1_u64 << starting_square;
+        let mut current_square_mask = starting_square_mask;
         while bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            current_square_mask = current_square_mask >> 7;
-            if (own_occupancy & current_square_mask) != 0 {
+            current_square_mask = bits::move_one_down_one_right(current_square_mask);
+            if add_destination_and_should_break(current_square_mask) {
                 break;
-            }
-            if (other_occupancy & current_square_mask) != 0 {
-                mask = mask | current_square_mask;
-                break;
-            } else {
-                mask = mask | current_square_mask;
             }
         }
 
@@ -537,48 +515,48 @@ impl BoardState {
         if bits::square_exists_two_up_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            add_destination(current_square_mask << 15);
+            add_destination(bits::move_two_up_one_left(current_square_mask));
         }
 
         if bits::square_exists_two_up_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            add_destination(current_square_mask << 17);
+            add_destination(bits::move_two_up_one_right(current_square_mask));
         }
 
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_left_mask(current_square_mask)
         {
-            add_destination(current_square_mask << 6);
+            add_destination(bits::move_one_up_two_left(current_square_mask));
         }
 
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
-            add_destination(current_square_mask << 10);
+            add_destination(bits::move_one_up_two_right(current_square_mask));
         }
 
         if bits::square_exists_two_down_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            add_destination(current_square_mask >> 17);
+            add_destination(bits::move_two_down_one_left(current_square_mask));
         }
 
         if bits::square_exists_two_down_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            add_destination(current_square_mask >> 15);
+            add_destination(bits::move_two_down_one_right(current_square_mask));
         }
         if bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_two_left_mask(current_square_mask)
         {
-            add_destination(current_square_mask >> 10);
+            add_destination(bits::move_one_down_two_left(current_square_mask));
         }
 
         if bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
-            add_destination(current_square_mask >> 6);
+            add_destination(bits::move_one_down_two_right(current_square_mask));
         }
 
         mask
@@ -607,32 +585,32 @@ impl BoardState {
         };
 
         if square_up {
-            add_destination(current_square_mask << 8);
+            add_destination(bits::move_one_up(current_square_mask));
 
             if square_left {
-                add_destination(current_square_mask << 7);
+                add_destination(bits::move_one_up_one_left(current_square_mask));
             }
             if square_right {
-                add_destination(current_square_mask << 9);
+                add_destination(bits::move_one_up_one_right(current_square_mask));
             }
         }
 
         if square_down {
-            add_destination(current_square_mask >> 8);
+            add_destination(bits::move_one_down(current_square_mask));
 
             if square_left {
-                add_destination(current_square_mask >> 9);
+                add_destination(bits::move_one_down_one_left(current_square_mask));
             }
             if square_right {
-                add_destination(current_square_mask >> 7);
+                add_destination(bits::move_one_down_one_right(current_square_mask));
             }
         }
 
         if square_left {
-            add_destination(current_square_mask >> 1);
+            add_destination(bits::move_one_left(current_square_mask));
         }
         if square_right {
-            add_destination(current_square_mask << 1);
+            add_destination(bits::move_one_right(current_square_mask));
         }
 
         mask

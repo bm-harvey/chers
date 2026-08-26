@@ -97,54 +97,70 @@ pub mod bits {
     const VERTICAL: usize = 8;
     const HORIZONTAL: usize = 1;
 
+    #[inline]
     pub fn move_one_up(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL
     }
+    #[inline]
     pub fn move_one_down(coordinate_mask: u64) -> u64 {
         coordinate_mask >> VERTICAL
     }
+    #[inline]
     pub fn move_one_left(coordinate_mask: u64) -> u64 {
         coordinate_mask >> HORIZONTAL
     }
+    #[inline]
     pub fn move_one_right(coordinate_mask: u64) -> u64 {
         coordinate_mask << HORIZONTAL
     }
 
+    #[inline]
     pub fn move_one_up_one_left(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL - HORIZONTAL
     }
+    #[inline]
     pub fn move_one_down_one_right(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL - HORIZONTAL
     }
+    #[inline]
     pub fn move_one_up_one_right(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL + HORIZONTAL
     }
+    #[inline]
     pub fn move_one_down_one_left(coordinate_mask: u64) -> u64 {
         coordinate_mask >> VERTICAL + HORIZONTAL
     }
 
+    #[inline]
     pub fn move_two_up_one_left(coordinate_mask: u64) -> u64 {
         coordinate_mask << 2 * VERTICAL - HORIZONTAL
     }
+    #[inline]
     pub fn move_two_down_one_right(coordinate_mask: u64) -> u64 {
         coordinate_mask >> 2 * VERTICAL - HORIZONTAL
     }
+    #[inline]
     pub fn move_two_up_one_right(coordinate_mask: u64) -> u64 {
         coordinate_mask << 2 * VERTICAL + HORIZONTAL
     }
+    #[inline]
     pub fn move_two_down_one_left(coordinate_mask: u64) -> u64 {
         coordinate_mask >> 2 * VERTICAL + HORIZONTAL
     }
 
+    #[inline]
     pub fn move_one_up_two_left(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL - 2 * HORIZONTAL
     }
+    #[inline]
     pub fn move_one_down_two_right(coordinate_mask: u64) -> u64 {
         coordinate_mask >> VERTICAL - 2 * HORIZONTAL
     }
+    #[inline]
     pub fn move_one_up_two_right(coordinate_mask: u64) -> u64 {
         coordinate_mask << VERTICAL + 2 * HORIZONTAL
     }
+    #[inline]
     pub fn move_one_down_two_left(coordinate_mask: u64) -> u64 {
         coordinate_mask >> VERTICAL + 2 * HORIZONTAL
     }

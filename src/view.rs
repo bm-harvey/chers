@@ -1,5 +1,5 @@
 use crate::chess::Game;
-use crate::core::{PieceColor, PieceType};
+use crate::core::{PieceColor, PieceType, bits};
 use colored::Colorize;
 
 #[derive(Default)]
@@ -25,10 +25,10 @@ impl GameViewer {
         self
     }
 
-    pub fn string_from_piece(&self, piece_type:&PieceType,piece_color: &PieceColor) -> String {
+    pub fn string_from_piece(&self, piece_type: &PieceType, piece_color: &PieceColor) -> String {
         self.char_from_piece(piece_type, piece_color).to_string()
     }
-    fn char_from_piece(&self, piece_type:&PieceType, piece_color:&PieceColor)-> char{
+    fn char_from_piece(&self, piece_type: &PieceType, piece_color: &PieceColor) -> char {
         let (white_symbols, black_symbols) = match self.render_type {
             RenderType::ASCII => {
                 return match piece_color {
@@ -79,7 +79,6 @@ impl GameViewer {
             PieceColor::White => white_symbols[idx],
             PieceColor::Black => black_symbols[idx],
         }
-
     }
 
     pub fn print_square_idxs(&self) -> () {
@@ -131,7 +130,9 @@ impl GameViewer {
 
     pub fn print_legal_moves(&self, game: &Game, square: usize) -> () {
         // todo - fix piece detection
-        let legal_squares = game.board_state().queen_movement_allowed_mask(square);
+        let legal_squares = game
+            .board_state()
+            .queen_movement_allowed_mask(bits::square_idx_to_mask(square));
 
         let mut out_strings = vec![String::from("\u{2820}"); 64];
 
