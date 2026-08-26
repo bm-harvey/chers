@@ -517,19 +517,16 @@ impl BoardState {
         {
             add_destination(bits::move_two_up_one_left(current_square_mask));
         }
-
         if bits::square_exists_two_up_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
             add_destination(bits::move_two_up_one_right(current_square_mask));
         }
-
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_left_mask(current_square_mask)
         {
             add_destination(bits::move_one_up_two_left(current_square_mask));
         }
-
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
@@ -552,7 +549,6 @@ impl BoardState {
         {
             add_destination(bits::move_one_down_two_left(current_square_mask));
         }
-
         if bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
