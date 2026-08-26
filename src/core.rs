@@ -40,11 +40,10 @@ pub mod bits {
         0b1_u64 << square
     }
 
-    pub fn square_mask_to_idx(square: u64) -> usize{
+    pub fn square_mask_to_idx(square: u64) -> usize {
         // assumes exactly one bit is on
         square.trailing_zeros() as usize
     }
-
 
     pub fn square_exists_left(square: usize) -> bool {
         square % 8 > 0
@@ -93,6 +92,61 @@ pub mod bits {
     pub fn square_exists_up_mask(square_mask: u64) -> bool {
         let row_mask = 0xff_00_00_00_00_00_00_00; // turns on bits in top row
         square_mask & row_mask == 0
+    }
+
+    const VERTICAL: usize = 8;
+    const HORIZONTAL: usize = 1;
+
+    pub fn move_one_up(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL
+    }
+    pub fn move_one_down(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> VERTICAL
+    }
+    pub fn move_one_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> HORIZONTAL
+    }
+    pub fn move_one_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask << HORIZONTAL
+    }
+
+    pub fn move_one_up_one_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL - HORIZONTAL
+    }
+    pub fn move_one_down_one_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL - HORIZONTAL
+    }
+    pub fn move_one_up_one_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL + HORIZONTAL
+    }
+    pub fn move_one_down_one_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> VERTICAL + HORIZONTAL
+    }
+
+    pub fn move_two_up_one_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask << 2 * VERTICAL - HORIZONTAL
+    }
+    pub fn move_two_down_one_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> 2 * VERTICAL - HORIZONTAL
+    }
+    pub fn move_two_up_one_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask << 2 * VERTICAL + HORIZONTAL
+    }
+    pub fn move_two_down_one_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> 2 * VERTICAL + HORIZONTAL
+    }
+
+    pub fn move_one_up_two_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL - 2 * HORIZONTAL
+    }
+    pub fn move_one_down_two_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> VERTICAL - 2 * HORIZONTAL
+    }
+    pub fn move_one_up_two_right(coordinate_mask: u64) -> u64 {
+        coordinate_mask << VERTICAL + 2 * HORIZONTAL
+    }
+    pub fn move_one_down_two_left(coordinate_mask: u64) -> u64 {
+        coordinate_mask >> VERTICAL + 2 * HORIZONTAL
     }
 
     pub fn dbg_mask(mask: u64) {
