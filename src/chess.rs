@@ -90,13 +90,13 @@ impl Game {
 
 #[derive(Default)]
 pub struct BoardState {
-    // bit masks for white pieces
+    // bit masks for pieces
     pieces: [u64; 12],
 
-    //  0 en pessant col
-    //  1 en pessant col
-    //  2 en pessant col
-    //  3 en pessant available
+    //  0 en passant col
+    //  1 en passant col
+    //  2 en passant col
+    //  3 en passant available
     //  4 castle right (wk)
     //  5 castle right (wq)
     //  6 castle right (bk)
@@ -261,8 +261,9 @@ impl BoardState {
         let square = Self::coordinate_to_square(file, rank);
         Self::square_occupied_by(square, occupancy_mask)
     }
+
     pub fn square_occupied_by(square: usize, occupancy_mask: u64) -> bool {
-        ((0b1 << square) & occupancy_mask) != 0
+        ((0b1_u64 << square) & occupancy_mask) != 0
     }
 
     pub fn piece_in_square(&self, square: usize) -> Option<(PieceColor, PieceType)> {
@@ -642,7 +643,7 @@ impl BoardState {
 
         let current_square_mask = bits::square_idx_to_mask(starting_square);
 
-        let (own_occupancy, other_occupancy, starting_mask, en_pessant_check_mask) =
+        let (own_occupancy, other_occupancy, starting_mask, en_passant_check_mask) =
             if self.white_to_move {
                 (
                     self.white_occupancy(),
