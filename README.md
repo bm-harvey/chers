@@ -1,3 +1,5 @@
-Me proving to myself i can still program rust without AI slop. 
+# Chers
 
-Ideally, I make an engine strong enough to beat me. 
+Making a chess engine from scratch in rust without using LLMS just for fun.  
+
+Ideally, I make an engine strong enough to beat myself. 
