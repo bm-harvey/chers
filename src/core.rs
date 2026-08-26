@@ -182,4 +182,27 @@ pub mod bits {
             println!();
         }
     }
+
+    pub struct Biterator {
+        bits: u64,
+    }
+    impl Biterator {
+        pub fn new(bits: u64) -> Self {
+            Self { bits }
+        }
+    }
+
+    impl Iterator for Biterator {
+        type Item = u64;
+        fn next(&mut self) -> Option<Self::Item> {
+            let idx = self.bits.trailing_zeros();
+            if idx == 64 {
+                None
+            } else {
+                let output = 0b1_u64 << idx;
+                self.bits ^= output;
+                Some(output)
+            }
+        }
+    }
 }

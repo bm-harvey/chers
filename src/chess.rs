@@ -1,5 +1,6 @@
-use crate::core::bits;
+use crate::core::bits::{self, square_idx_to_mask};
 use crate::core::{ChersError, PieceColor, PieceType};
+use smallvec::{SmallVec, smallvec};
 use std::char;
 
 #[derive(Default)]
@@ -101,7 +102,7 @@ pub struct BoardState {
     //  5 castle right (wq)
     //  6 castle right (bk)
     //  7 castle right (bq)
-    //special_moves: u8,
+    special_moves: u8,
     white_to_move: bool,
 }
 impl BoardState {
@@ -149,8 +150,21 @@ impl BoardState {
                 Self::BLACK_QUEENS_START,
                 Self::BLACK_KINGS_START,
             ],
-            //special_moves: 0b11110000,
+            special_moves: 0b11110000,
             white_to_move: true,
+        }
+    }
+
+    pub fn en_passant_square_mask(&self) -> u64 {
+        if self.special_moves & (0b1_u8 << 3) != 0 {
+            let file = (self.special_moves & (0b00000111)) as usize;
+            let rank = if self.white_to_move { 5 } else { 2 };
+
+            let square_idx = BoardState::coordinate_to_square(file, rank);
+
+            bits::square_idx_to_mask(square_idx)
+        } else {
+            0_u64
         }
     }
 
@@ -160,6 +174,7 @@ impl BoardState {
         square_2: usize,
         promotion_piece: Option<PieceType>,
     ) -> Result<(), ChersError> {
+        self.special_moves &= 0b11110000;
         match promotion_piece {
             None => {
                 let (pieces_idxs, other_pieces_idxs) = if self.white_to_move {
@@ -177,9 +192,16 @@ impl BoardState {
                 let move_mask = (0b1_u64 << square_1) | (0b1_u64 << square_2);
                 let capture_mask = 0b1_u64 << square_2;
 
-                for mask in self.pieces[pieces_idxs].iter_mut() {
+                for (idx, mask) in self.pieces[pieces_idxs].iter_mut().enumerate() {
                     if Self::square_occupied_by(square_1, *mask) {
                         *mask = *mask ^ move_mask;
+                        if idx == 0 && square_1.abs_diff(square_2) == 16 {
+                            // enable en passant
+                            let (file, _) = BoardState::square_to_coordinate(square_2);
+                            let file = file as u8;
+                            let new_bits = (0b1_u8 << 3) | file;
+                            self.special_moves |= new_bits;
+                        }
                         break;
                     }
                 }
@@ -316,6 +338,49 @@ impl BoardState {
         self.white_occupancy() | self.black_occupancy()
     }
 
+    pub fn active_pawns(&self) -> u64 {
+        if self.white_to_move {
+            self.white_pawns()
+        } else {
+            self.black_pawns()
+        }
+    }
+    pub fn active_rooks(&self) -> u64 {
+        if self.white_to_move {
+            self.white_rooks()
+        } else {
+            self.black_rooks()
+        }
+    }
+    pub fn active_knights(&self) -> u64 {
+        if self.white_to_move {
+            self.white_knights()
+        } else {
+            self.black_knights()
+        }
+    }
+    pub fn active_bishops(&self) -> u64 {
+        if self.white_to_move {
+            self.white_bishops()
+        } else {
+            self.black_bishops()
+        }
+    }
+    pub fn active_queens(&self) -> u64 {
+        if self.white_to_move {
+            self.white_queens()
+        } else {
+            self.black_queens()
+        }
+    }
+    pub fn active_kings(&self) -> u64 {
+        if self.white_to_move {
+            self.white_kings()
+        } else {
+            self.black_kings()
+        }
+    }
+
     pub fn white_pawns(&self) -> u64 {
         self.pieces[Self::WHITE_PAWNS_IDX]
     }
@@ -366,15 +431,22 @@ impl BoardState {
             - (self.black_bishops().count_ones() as f32) * 3_f32
             - (self.black_queens().count_ones() as f32) * 9_f32
     }
+    pub fn num_active_pieces(&self) -> u32 {
+        if self.white_to_move {
+            self.white_occupancy().count_ones()
+        } else {
+            self.black_occupancy().count_ones()
+        }
+    }
 }
 
 impl BoardState {
-    pub fn queen_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
-        self.rook_movement_allowed_mask(starting_square_mask)
-            | self.bishop_movement_allowed_mask(starting_square_mask)
+    pub fn queen_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
+        self.rook_pseudo_allowed_moves(starting_square_mask)
+            | self.bishop_pseudo_allowed_moves(starting_square_mask)
     }
 
-    pub fn rook_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
+    pub fn rook_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let mut own_occupancy = self.white_occupancy();
@@ -387,41 +459,37 @@ impl BoardState {
             if (own_occupancy & destination_mask) != 0 {
                 true
             } else if (other_occupancy & destination_mask) != 0 {
-                mask = mask | destination_mask;
+                mask |= destination_mask;
                 true
             } else {
-                mask = mask | destination_mask;
+                mask |= destination_mask;
                 false
             }
         };
 
         let mut current_square_mask = starting_square_mask;
-        while bits::square_exists_up_mask(current_square_mask)
-        {
+        while bits::square_exists_up_mask(current_square_mask) {
             current_square_mask = bits::move_one_up(current_square_mask);
             if add_destination_and_should_break(current_square_mask) {
                 break;
             }
         }
         let mut current_square_mask = starting_square_mask;
-        while bits::square_exists_down_mask(current_square_mask)
-        {
+        while bits::square_exists_down_mask(current_square_mask) {
             current_square_mask = bits::move_one_down(current_square_mask);
             if add_destination_and_should_break(current_square_mask) {
                 break;
             }
         }
         let mut current_square_mask = starting_square_mask;
-        while bits::square_exists_left_mask(current_square_mask)
-        {
+        while bits::square_exists_left_mask(current_square_mask) {
             current_square_mask = bits::move_one_left(current_square_mask);
             if add_destination_and_should_break(current_square_mask) {
                 break;
             }
         }
         let mut current_square_mask = starting_square_mask;
-        while bits::square_exists_right_mask(current_square_mask)
-        {
+        while bits::square_exists_right_mask(current_square_mask) {
             current_square_mask = bits::move_one_right(current_square_mask);
             if add_destination_and_should_break(current_square_mask) {
                 break;
@@ -431,7 +499,7 @@ impl BoardState {
         mask
     }
 
-    pub fn bishop_movement_allowed_mask(&self, starting_square_mask: u64) -> u64 {
+    pub fn bishop_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let mut own_occupancy = self.white_occupancy();
@@ -444,10 +512,10 @@ impl BoardState {
             if (own_occupancy & destination_mask) != 0 {
                 true
             } else if (other_occupancy & destination_mask) != 0 {
-                mask = mask | destination_mask;
+                mask |= destination_mask;
                 true
             } else {
-                mask = mask | destination_mask;
+                mask |= destination_mask;
                 false
             }
         };
@@ -495,7 +563,7 @@ impl BoardState {
         mask
     }
 
-    pub fn knight_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+    pub fn knight_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let own_occupancy = if self.white_to_move {
@@ -504,11 +572,11 @@ impl BoardState {
             self.black_occupancy()
         };
 
-        let current_square_mask = bits::square_idx_to_mask(starting_square);
+        let current_square_mask = starting_square_mask;
 
         let mut add_destination = |target_mask: u64| {
             if target_mask & own_occupancy == 0 {
-                mask = mask | target_mask;
+                mask |= target_mask;
             }
         };
 
@@ -558,7 +626,7 @@ impl BoardState {
         mask
     }
 
-    pub fn king_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+    pub fn king_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
 
         let own_occupancy = if self.white_to_move {
@@ -567,7 +635,7 @@ impl BoardState {
             self.black_occupancy()
         };
 
-        let current_square_mask = bits::square_idx_to_mask(starting_square);
+        let current_square_mask = starting_square_mask;
 
         let square_up = bits::square_exists_up_mask(current_square_mask);
         let square_down = bits::square_exists_down_mask(current_square_mask);
@@ -576,7 +644,7 @@ impl BoardState {
 
         let mut add_destination = |target_mask: u64| {
             if target_mask & own_occupancy == 0 {
-                mask = mask | target_mask;
+                mask |= target_mask;
             }
         };
 
@@ -612,66 +680,87 @@ impl BoardState {
         mask
     }
 
-    pub fn pawn_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+    pub fn pawn_pseudo_allowed_moves(&self, starting_square_mask: u64) -> u64 {
         let mut mask = 0b0_u64;
+        let current_square_mask = starting_square_mask;
 
-        let current_square_mask = bits::square_idx_to_mask(starting_square);
-
-        let (own_occupancy, other_occupancy, starting_mask, en_passant_check_mask) =
-            if self.white_to_move {
-                (
-                    self.white_occupancy(),
-                    self.black_occupancy(),
-                    0x00_00_00_00_00_00_ff_00_u64,
-                    0x00_00_00_ff_00_00_00_00_u64,
-                )
-            } else {
-                (
-                    self.black_occupancy(),
-                    self.white_occupancy(),
-                    0x00_ff_00_00_00_00_00_00_u64,
-                    0x00_00_00_00_ff_00_00_00_u64,
-                )
-            };
-
-        let move_forward = |current_square_mask: u64| {
-            if self.white_to_move {
-                current_square_mask << 8
-            } else {
-                current_square_mask >> 8
-            }
+        let (own_occupancy, other_occupancy, starting_mask) = if self.white_to_move {
+            (
+                self.white_occupancy(),
+                self.black_occupancy(),
+                0x00_00_00_00_00_00_ff_00_u64,
+            )
+        } else {
+            (
+                self.black_occupancy(),
+                self.white_occupancy(),
+                0x00_ff_00_00_00_00_00_00_u64,
+            )
         };
 
-        let mut add_destination = |target_mask: u64, capture: bool| {
-            if capture {
-                if target_mask & other_occupancy != 0 {
-                    mask = mask | target_mask;
-                    return true;
-                }
+        let move_forward = |square_mask: u64| {
+            if self.white_to_move {
+                bits::move_one_up(square_mask)
             } else {
-                if target_mask & own_occupancy == 0 {
-                    mask = mask | target_mask;
-                    return true;
-                }
+                bits::move_one_down(square_mask)
             }
-            false
         };
 
         let forward_square = move_forward(current_square_mask);
+        if forward_square & (own_occupancy | other_occupancy) == 0 {
+            mask |= forward_square;
 
-        let can_move_forward = add_destination(forward_square, false);
-        if can_move_forward & (current_square_mask & starting_mask != 0) {
-            add_destination(move_forward(forward_square), false);
+            if current_square_mask & starting_mask != 0 {
+                let double_forward = move_forward(forward_square);
+                if double_forward & (own_occupancy | other_occupancy) == 0 {
+                    mask |= double_forward;
+                }
+            }
         }
 
+        let en_passant_sqaure = self.en_passant_square_mask();
+
         if bits::square_exists_left_mask(forward_square) {
-            add_destination(forward_square >> 1, true);
+            let capture_left = bits::move_one_left(forward_square);
+
+            if capture_left & (other_occupancy | en_passant_sqaure) != 0 {
+                mask |= capture_left;
+            }
         }
 
         if bits::square_exists_right_mask(forward_square) {
-            add_destination(forward_square << 1, true);
+            let capture_right = bits::move_one_right(forward_square);
+            if capture_right & (other_occupancy | en_passant_sqaure) != 0 {
+                mask |= capture_right;
+            }
         }
 
         mask
+    }
+
+    pub fn psuedo_legal_moves(&self) -> Vec<(u64, u64)> {
+        let num_active_pieces = self.num_active_pieces();
+        let mut result = Vec::<(u64, u64)>::with_capacity(num_active_pieces as usize);
+
+        for pawn in bits::Biterator::new(self.active_pawns()) {
+            result.push((pawn, self.pawn_pseudo_allowed_moves(pawn)))
+        }
+        for rook in bits::Biterator::new(self.active_rooks()) {
+            result.push((rook, self.rook_pseudo_allowed_moves(rook)))
+        }
+        for knights in bits::Biterator::new(self.active_knights()) {
+            result.push((knights, self.knight_pseudo_allowed_moves(knights)))
+        }
+        for bishops in bits::Biterator::new(self.active_bishops()) {
+            result.push((bishops, self.bishop_pseudo_allowed_moves(bishops)))
+        }
+        for queens in bits::Biterator::new(self.active_queens()) {
+            result.push((queens, self.queen_pseudo_allowed_moves(queens)))
+        }
+        for kings in bits::Biterator::new(self.active_kings()) {
+            result.push((kings, self.king_pseudo_allowed_moves(kings)))
+        }
+
+        result
     }
 }

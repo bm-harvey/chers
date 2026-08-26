@@ -128,39 +128,7 @@ impl GameViewer {
         println!();
     }
 
-    pub fn print_legal_moves(&self, game: &Game, square: usize) -> () {
-        // todo - fix piece detection
-        let legal_squares = game
-            .board_state()
-            .queen_movement_allowed_mask(bits::square_idx_to_mask(square));
-
-        let mut out_strings = vec![String::from("\u{2820}"); 64];
-
-        for square in 0..64_usize {
-            let square_valid = (legal_squares & (0b1_u64 << square)) != 0;
-
-            out_strings[square as usize] = match game.board_state().piece_in_square(square) {
-                Some((color, piece)) => {
-                    let raw_string = self.string_from_piece(&piece, &color);
-                    if square_valid {
-                        raw_string.purple().to_string()
-                    } else {
-                        match color {
-                            PieceColor::White => raw_string.red().to_string(),
-                            PieceColor::Black => raw_string.blue().to_string(),
-                        }
-                    }
-                }
-                None => {
-                    if square_valid {
-                        "\u{2820}".purple().to_string()
-                    } else {
-                        "\u{2820}".to_string()
-                    }
-                }
-            };
-        }
-
+    pub fn print_board(labels: &[String]) -> () {
         println!("   a b c d e f g h");
         println!();
         for rank in (0..8).rev() {
@@ -168,13 +136,60 @@ impl GameViewer {
             for file in 0..8 {
                 let square = 8 * rank + file;
 
-                print!("{} ", out_strings[square]);
+                print!("{} ", labels[square]);
             }
             println!(" {}", rank + 1);
         }
         println!();
         println!("   a b c d e f g h");
         println!();
+    }
+
+    pub fn print_legal_moves(&self, game: &Game) -> () {
+        // todo - fix piece detection
+        //
+        let start = std::time::Instant::now();
+        let legal_squares = game.board_state().psuedo_legal_moves();
+        let stop = start.elapsed().as_nanos();
+
+        let blank = String::from("\u{281B}");
+        //let blank = String::from("\u{2087}");
+        //let blank = String::from("\u{2820}");
+
+        let mut default_out_strings = vec![blank.clone(); 64];
+
+        for square in 0..64_usize {
+            default_out_strings[square as usize] = match game.board_state().piece_in_square(square)
+            {
+                Some((color, piece)) => {
+                    let raw_string = self.string_from_piece(&piece, &PieceColor::White);
+                    match color {
+                        PieceColor::White => raw_string.red().to_string(),
+                        PieceColor::Black => raw_string.blue().to_string(),
+                    }
+                }
+                None => blank.clone()
+            };
+        }
+        for move_set in legal_squares.iter() {
+            let mut highlights = vec![bits::square_mask_to_idx(move_set.0)];
+            for destination in bits::Biterator::new(move_set.1) {
+                highlights.push(bits::square_mask_to_idx(destination))
+            }
+
+            let mut out_strings = default_out_strings.clone();
+            for highlight in highlights {
+                let current_string = default_out_strings[highlight].clone();
+                out_strings[highlight] = if current_string == blank {
+                    blank.on_truecolor(100, 100, 100).to_string()
+                } else {
+                    current_string.black().on_truecolor(100, 100, 100).to_string()
+                }
+            }
+            GameViewer::print_board(&out_strings);
+        }
+
+        dbg!(stop);
     }
     pub fn print(&self, game: &Game) -> () {
         let mut out_strings = vec![String::from("\u{2820}"); 64];
