@@ -527,74 +527,174 @@ impl BoardState {
 
         let current_square_mask = bits::square_idx_to_mask(starting_square);
 
+        let mut add_destination = |target_mask: u64| {
+            if target_mask & own_occupancy == 0 {
+                mask = mask | target_mask;
+            }
+        };
+
         if bits::square_exists_two_up_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask << 15;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask << 15);
         }
 
         if bits::square_exists_two_up_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask << 17;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask << 17);
         }
+
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_left_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask << 6;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask << 6);
         }
 
         if bits::square_exists_up_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask << 10;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask << 10);
         }
 
         if bits::square_exists_two_down_mask(current_square_mask)
             && bits::square_exists_left_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask >> 17;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask >> 17);
         }
 
         if bits::square_exists_two_down_mask(current_square_mask)
             && bits::square_exists_right_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask >> 15;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask >> 15);
         }
         if bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_two_left_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask >> 10;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
-            }
+            add_destination(current_square_mask >> 10);
         }
 
         if bits::square_exists_down_mask(current_square_mask)
             && bits::square_exists_two_right_mask(current_square_mask)
         {
-            let target_square_mask = current_square_mask >> 6;
-            if target_square_mask & own_occupancy != 0 {
-                mask = mask ^ target_square_mask
+            add_destination(current_square_mask >> 6);
+        }
+
+        mask
+    }
+
+    pub fn king_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+        let mut mask = 0b0_u64;
+
+        let own_occupancy = if self.white_to_move {
+            self.white_occupancy()
+        } else {
+            self.black_occupancy()
+        };
+
+        let current_square_mask = bits::square_idx_to_mask(starting_square);
+
+        let square_up = bits::square_exists_up_mask(current_square_mask);
+        let square_down = bits::square_exists_down_mask(current_square_mask);
+        let square_left = bits::square_exists_left_mask(current_square_mask);
+        let square_right = bits::square_exists_right_mask(current_square_mask);
+
+        let mut add_destination = |target_mask: u64| {
+            if target_mask & own_occupancy == 0 {
+                mask = mask | target_mask;
             }
+        };
+
+        if square_up {
+            add_destination(current_square_mask << 8);
+
+            if square_left {
+                add_destination(current_square_mask << 7);
+            }
+            if square_right {
+                add_destination(current_square_mask << 9);
+            }
+        }
+
+        if square_down {
+            add_destination(current_square_mask >> 8);
+
+            if square_left {
+                add_destination(current_square_mask >> 9);
+            }
+            if square_right {
+                add_destination(current_square_mask >> 7);
+            }
+        }
+
+        if square_left {
+            add_destination(current_square_mask >> 1);
+        }
+        if square_right {
+            add_destination(current_square_mask << 1);
+        }
+
+        mask
+    }
+
+    pub fn pawn_movement_allowed_mask(&self, starting_square: usize) -> u64 {
+        let mut mask = 0b0_u64;
+
+        let current_square_mask = bits::square_idx_to_mask(starting_square);
+
+        let (own_occupancy, other_occupancy, starting_mask, en_pessant_check_mask) =
+            if self.white_to_move {
+                (
+                    self.white_occupancy(),
+                    self.black_occupancy(),
+                    0x00_00_00_00_00_00_ff_00_u64,
+                    0x00_00_00_ff_00_00_00_00_u64,
+                )
+            } else {
+                (
+                    self.black_occupancy(),
+                    self.white_occupancy(),
+                    0x00_ff_00_00_00_00_00_00_u64,
+                    0x00_00_00_00_ff_00_00_00_u64,
+                )
+            };
+
+        let move_forward = |current_square_mask: u64| {
+            if self.white_to_move {
+                current_square_mask << 8
+            } else {
+                current_square_mask >> 8
+            }
+        };
+
+        let mut add_destination = |target_mask: u64, capture: bool| {
+            if capture {
+                if target_mask & other_occupancy != 0 {
+                    mask = mask | target_mask;
+                    return true;
+                }
+            } else {
+                if target_mask & own_occupancy == 0 {
+                    mask = mask | target_mask;
+                    return true;
+                }
+            }
+            false
+        };
+
+        let forward_square = move_forward(current_square_mask);
+
+        let can_move_forward = add_destination(forward_square, false);
+        if can_move_forward & (current_square_mask & starting_mask != 0) {
+            add_destination(move_forward(forward_square), false);
+        }
+
+        if bits::square_exists_left_mask(forward_square) {
+            add_destination(forward_square >> 1, true);
+        }
+
+        if bits::square_exists_right_mask(forward_square) {
+            add_destination(forward_square << 1, true);
         }
 
         mask
