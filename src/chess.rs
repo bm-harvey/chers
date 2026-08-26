@@ -1,23 +1,40 @@
-use crate::core::bits::{self, square_idx_to_mask};
+use crate::core::bits::{self, Biterator, square_idx_to_mask};
 use crate::core::{ChersError, PieceColor, PieceType};
+use rand::RngExt;
+use rand::seq::IndexedRandom;
 use smallvec::{SmallVec, smallvec};
 use std::char;
 
 #[derive(Default)]
 pub struct Game {
-    board_state: BoardState,
+    board_states: Vec<BoardState>,
 }
 
 impl Game {
     pub fn new() -> Self {
         let mut result = Self::default();
         let board_state = BoardState::new();
-        result.board_state = board_state;
+        result.board_states = vec![board_state];
         result
     }
 
     pub fn board_state(&self) -> &BoardState {
-        &self.board_state
+        &self.board_states.last().unwrap()
+    }
+
+    pub fn do_random_pseudo_legal_move(&mut self) -> Result<(), ChersError> {
+        let move_squares = self.board_state().random_psuedo_legal_move();
+
+
+        if move_squares.0 == 0 || move_squares.1 == 0 {
+            Err(ChersError::IllegalMoveError)
+        } else {
+            self.apply_move_by_squares(
+                bits::square_mask_to_idx(move_squares.0),
+                bits::square_mask_to_idx(move_squares.1),
+                None,
+            )
+        }
     }
 
     pub fn natural_apply_move(&mut self, move_str: &str) -> Result<(), ChersError> {
@@ -68,8 +85,7 @@ impl Game {
         let rank_1 = rank_from_char(chars[1])?;
         let rank_2 = rank_from_char(chars[3])?;
 
-        self.board_state
-            .apply_move_by_coords(file_1, rank_1, file_2, rank_2, promotion_piece)?;
+        self.apply_move_by_coords(file_1, rank_1, file_2, rank_2, promotion_piece)?;
 
         Ok(())
     }
@@ -82,14 +98,35 @@ impl Game {
         rank_2: usize,
         promotion_piece: Option<PieceType>,
     ) -> Result<(), ChersError> {
-        self.board_state
-            .apply_move_by_coords(file_1, rank_1, file_2, rank_2, promotion_piece)?;
+        self.board_states
+            .push(self.board_state().generate_board_after_move(
+                file_1,
+                rank_1,
+                file_2,
+                rank_2,
+                promotion_piece,
+            )?);
+
+        Ok(())
+    }
+    pub fn apply_move_by_squares(
+        &mut self,
+        square_1: usize,
+        square_2: usize,
+        promotion_piece: Option<PieceType>,
+    ) -> Result<(), ChersError> {
+        self.board_states
+            .push(self.board_state().generate_board_after_move_by_squares(
+                square_1,
+                square_2,
+                promotion_piece,
+            )?);
 
         Ok(())
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BoardState {
     // bit masks for pieces
     pieces: [u64; 12],
@@ -168,13 +205,14 @@ impl BoardState {
         }
     }
 
-    pub fn apply_move_by_squares(
-        &mut self,
+    pub fn generate_board_after_move_by_squares(
+        &self,
         square_1: usize,
         square_2: usize,
         promotion_piece: Option<PieceType>,
-    ) -> Result<(), ChersError> {
-        self.special_moves &= 0b11110000;
+    ) -> Result<BoardState, ChersError> {
+        let mut result = self.clone();
+        result.special_moves &= 0b11110000;
         match promotion_piece {
             None => {
                 let (pieces_idxs, other_pieces_idxs) = if self.white_to_move {
@@ -192,7 +230,7 @@ impl BoardState {
                 let move_mask = (0b1_u64 << square_1) | (0b1_u64 << square_2);
                 let capture_mask = 0b1_u64 << square_2;
 
-                for (idx, mask) in self.pieces[pieces_idxs].iter_mut().enumerate() {
+                for (idx, mask) in result.pieces[pieces_idxs].iter_mut().enumerate() {
                     if Self::square_occupied_by(square_1, *mask) {
                         *mask = *mask ^ move_mask;
                         if idx == 0 && square_1.abs_diff(square_2) == 16 {
@@ -200,12 +238,12 @@ impl BoardState {
                             let (file, _) = BoardState::square_to_coordinate(square_2);
                             let file = file as u8;
                             let new_bits = (0b1_u8 << 3) | file;
-                            self.special_moves |= new_bits;
+                            result.special_moves |= new_bits;
                         }
                         break;
                     }
                 }
-                for mask in self.pieces[other_pieces_idxs].iter_mut() {
+                for mask in result.pieces[other_pieces_idxs].iter_mut() {
                     if Self::square_occupied_by(square_2, *mask) {
                         *mask = *mask ^ capture_mask;
                         break;
@@ -239,12 +277,12 @@ impl BoardState {
                     _ => Err(ChersError::MoveParseError),
                 }?;
 
-                self.pieces[pieces_idx] = self.pieces[pieces_idx] ^ move_mask;
-                self.pieces[promo_idx] = self.pieces[pieces_idx] ^ promo_mask;
+                result.pieces[pieces_idx] = self.pieces[pieces_idx] ^ move_mask;
+                result.pieces[promo_idx] = self.pieces[pieces_idx] ^ promo_mask;
 
                 // todo - optimize by checking for diagonals
                 let capture_mask = 0b1_u64 << square_2;
-                for mask in self.pieces[other_pieces_idxs].iter_mut() {
+                for mask in result.pieces[other_pieces_idxs].iter_mut() {
                     if Self::square_occupied_by(square_1, *mask) {
                         *mask = *mask ^ capture_mask;
                         break;
@@ -253,23 +291,22 @@ impl BoardState {
             }
         }
 
-        self.white_to_move = !self.white_to_move;
-        Ok(())
+        result.white_to_move = !self.white_to_move;
+        Ok(result)
     }
 
-    pub fn apply_move_by_coords(
-        &mut self,
+    pub fn generate_board_after_move(
+        &self,
         file_1: usize,
         rank_1: usize,
         file_2: usize,
         rank_2: usize,
         promotion_piece: Option<PieceType>,
-    ) -> Result<(), ChersError> {
+    ) -> Result<BoardState, ChersError> {
         let square_1 = Self::coordinate_to_square(file_1, rank_1);
         let square_2 = Self::coordinate_to_square(file_2, rank_2);
 
-        self.apply_move_by_squares(square_1, square_2, promotion_piece)?;
-        Ok(())
+        Ok(self.generate_board_after_move_by_squares(square_1, square_2, promotion_piece)?)
     }
 
     pub fn coordinate_to_square(file: usize, rank: usize) -> usize {
@@ -757,10 +794,28 @@ impl BoardState {
         for queens in bits::Biterator::new(self.active_queens()) {
             result.push((queens, self.queen_pseudo_allowed_moves(queens)))
         }
-        for kings in bits::Biterator::new(self.active_kings()) {
-            result.push((kings, self.king_pseudo_allowed_moves(kings)))
-        }
+        let kings = self.active_kings();
+        result.push((kings, self.king_pseudo_allowed_moves(kings)));
 
         result
+    }
+    pub fn random_psuedo_legal_move(&self) -> (u64, u64) {
+        let pseudo_legal_moves = self.psuedo_legal_moves();
+
+        let mut rng = rand::rng();
+        let target =
+            pseudo_legal_moves.choose_weighted(&mut rng, |(_targ, dest)| dest.count_ones());
+
+        if let Ok(target) = target {
+            let destination_choice = rng.random_range(0..target.1.count_ones());
+            (
+                target.0,
+                Biterator::new(target.1)
+                    .nth(destination_choice as usize)
+                    .unwrap(),
+            )
+        } else {
+            (0, 0)
+        }
     }
 }

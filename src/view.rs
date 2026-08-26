@@ -1,4 +1,4 @@
-use crate::chess::Game;
+use crate::chess::{BoardState, Game};
 use crate::core::{PieceColor, PieceType, bits};
 use colored::Colorize;
 
@@ -129,8 +129,8 @@ impl GameViewer {
     }
 
     pub fn print_board(labels: &[String]) -> () {
-        println!("   a b c d e f g h");
         println!();
+        println!("   a b c d e f g h");
         for rank in (0..8).rev() {
             print!("{}  ", rank + 1);
             for file in 0..8 {
@@ -140,7 +140,6 @@ impl GameViewer {
             }
             println!(" {}", rank + 1);
         }
-        println!();
         println!("   a b c d e f g h");
         println!();
     }
@@ -152,23 +151,34 @@ impl GameViewer {
         let legal_squares = game.board_state().psuedo_legal_moves();
         let stop = start.elapsed().as_nanos();
 
-        let blank = String::from("\u{281B}");
+        let highlight_string = String::from("\u{2836}");
+        let blank = String::from("\u{25A0}");
+        //let blank = String::from("\u{281B}");
         //let blank = String::from("\u{2087}");
         //let blank = String::from("\u{2820}");
 
         let mut default_out_strings = vec![blank.clone(); 64];
 
         for square in 0..64_usize {
+            let (file, rank) = BoardState::square_to_coordinate(square);
             default_out_strings[square as usize] = match game.board_state().piece_in_square(square)
             {
                 Some((color, piece)) => {
-                    let raw_string = self.string_from_piece(&piece, &PieceColor::White);
-                    match color {
+                    let raw_string = self.string_from_piece(&piece, &PieceColor::Black);
+                    let piece_string = match color {
                         PieceColor::White => raw_string.red().to_string(),
                         PieceColor::Black => raw_string.blue().to_string(),
+                    };
+                    piece_string
+                }
+
+                None => {
+                    if (file + rank) % 2 == 1 {
+                        blank.clone().white().to_string()
+                    } else {
+                        blank.clone().truecolor(100, 100, 100).to_string()
                     }
                 }
-                None => blank.clone()
             };
         }
         for move_set in legal_squares.iter() {
@@ -180,11 +190,13 @@ impl GameViewer {
             let mut out_strings = default_out_strings.clone();
             for highlight in highlights {
                 let current_string = default_out_strings[highlight].clone();
-                out_strings[highlight] = if current_string == blank {
-                    blank.on_truecolor(100, 100, 100).to_string()
-                } else {
-                    current_string.black().on_truecolor(100, 100, 100).to_string()
-                }
+
+                out_strings[highlight] =
+                    if (game.board_state().total_occupancy() & (0b1_u64 << highlight)) == 0 {
+                        highlight_string.magenta().to_string()
+                    } else {
+                        current_string.bold().underline().italic().to_string()
+                    }
             }
             GameViewer::print_board(&out_strings);
         }
@@ -192,34 +204,32 @@ impl GameViewer {
         dbg!(stop);
     }
     pub fn print(&self, game: &Game) -> () {
-        let mut out_strings = vec![String::from("\u{2820}"); 64];
+        let blank = String::from("\u{25A0}");
+
+        let mut default_out_strings = vec![blank.clone(); 64];
 
         for square in 0..64_usize {
-            out_strings[square] = match game.board_state().piece_in_square(square) {
+            let (file, rank) = BoardState::square_to_coordinate(square);
+            default_out_strings[square as usize] = match game.board_state().piece_in_square(square)
+            {
                 Some((color, piece)) => {
-                    let raw_string = self.string_from_piece(&piece, &PieceColor::White);
-                    match color {
+                    let raw_string = self.string_from_piece(&piece, &PieceColor::Black);
+                    let piece_string = match color {
                         PieceColor::White => raw_string.red().to_string(),
                         PieceColor::Black => raw_string.blue().to_string(),
+                    };
+                    piece_string
+                }
+
+                None => {
+                    if (file + rank) % 2 == 1 {
+                        blank.clone().white().to_string()
+                    } else {
+                        blank.clone().truecolor(100, 100, 100).to_string()
                     }
                 }
-                None => String::from("\u{2820}"),
             };
         }
-
-        println!("   a b c d e f g h");
-        println!();
-        for rank in (0..8).rev() {
-            print!("{}  ", rank + 1);
-            for file in 0..8 {
-                let square = 8 * rank + file;
-
-                print!("{} ", out_strings[square]);
-            }
-            println!(" {}", rank + 1);
-        }
-        println!();
-        println!("   a b c d e f g h");
-        println!();
+        GameViewer::print_board(&default_out_strings);
     }
 }

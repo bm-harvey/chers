@@ -120,7 +120,7 @@ pub mod bits {
     }
     #[inline]
     pub fn move_one_down_one_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask << VERTICAL - HORIZONTAL
+        coordinate_mask >> VERTICAL - HORIZONTAL
     }
     #[inline]
     pub fn move_one_up_one_right(coordinate_mask: u64) -> u64 {
