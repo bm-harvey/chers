@@ -1,8 +1,7 @@
-use crate::core::bits::{self, Biterator, square_idx_to_mask};
+use crate::core::bits::{self, Biterator};
 use crate::core::{ChersError, PieceColor, PieceType};
 use rand::RngExt;
 use rand::seq::IndexedRandom;
-use smallvec::{SmallVec, smallvec};
 use std::char;
 
 #[derive(Default)]
@@ -142,18 +141,18 @@ pub struct BoardState {
     white_to_move: bool,
 }
 impl BoardState {
-    const WHITE_PAWNS_START: u64 = 0b11111111 << 8 * 1;
-    const WHITE_ROOKS_START: u64 = 0b10000001 << 8 * 0;
-    const WHITE_KNIGHTS_START: u64 = 0b01000010 << 8 * 0;
-    const WHITE_BISHOPS_START: u64 = 0b00100100 << 8 * 0;
-    const WHITE_QUEENS_START: u64 = 0b00001000 << 8 * 0;
-    const WHITE_KINGS_START: u64 = 0b00010000 << 8 * 0;
-    const BLACK_PAWNS_START: u64 = 0b11111111 << 8 * 6;
-    const BLACK_ROOKS_START: u64 = 0b10000001 << 8 * 7;
-    const BLACK_KNIGHTS_START: u64 = 0b01000010 << 8 * 7;
-    const BLACK_BISHOPS_START: u64 = 0b00100100 << 8 * 7;
-    const BLACK_QUEENS_START: u64 = 0b00001000 << 8 * 7;
-    const BLACK_KINGS_START: u64 = 0b00010000 << 8 * 7;
+    const WHITE_PAWNS_START: u64 = 0b11111111 << 8;
+    const WHITE_ROOKS_START: u64 = 0b10000001;
+    const WHITE_KNIGHTS_START: u64 = 0b01000010;
+    const WHITE_BISHOPS_START: u64 = 0b00100100;
+    const WHITE_QUEENS_START: u64 = 0b00001000;
+    const WHITE_KINGS_START: u64 = 0b00010000;
+    const BLACK_PAWNS_START: u64 = 0b11111111 << (8 * 6);
+    const BLACK_ROOKS_START: u64 = 0b10000001 << (8 * 7);
+    const BLACK_KNIGHTS_START: u64 = 0b01000010 << (8 * 7);
+    const BLACK_BISHOPS_START: u64 = 0b00100100 << (8 * 7);
+    const BLACK_QUEENS_START: u64 = 0b00001000 << (8 * 7);
+    const BLACK_KINGS_START: u64 = 0b00010000 << (8 * 7);
 
     const WHITE_PAWNS_IDX: usize = 0;
     const WHITE_ROOKS_IDX: usize = 1;
@@ -232,7 +231,7 @@ impl BoardState {
 
                 for (idx, mask) in other_board.pieces[pieces_idxs].iter_mut().enumerate() {
                     if Self::square_occupied_by(square_1, *mask) {
-                        *mask = *mask ^ move_mask;
+                        *mask ^= move_mask;
                         if idx == 0 && square_1.abs_diff(square_2) == 16 {
                             // enable en passant
                             let (file, _) = BoardState::square_to_coordinate(square_2);
@@ -245,7 +244,7 @@ impl BoardState {
                 }
                 for mask in other_board.pieces[other_pieces_idxs].iter_mut() {
                     if Self::square_occupied_by(square_2, *mask) {
-                        *mask = *mask ^ capture_mask;
+                        *mask ^= capture_mask;
                         break;
                     }
                 }
@@ -284,7 +283,7 @@ impl BoardState {
                 let capture_mask = 0b1_u64 << square_2;
                 for mask in other_board.pieces[other_pieces_idxs].iter_mut() {
                     if Self::square_occupied_by(square_1, *mask) {
-                        *mask = *mask ^ capture_mask;
+                        *mask ^= capture_mask;
                         break;
                     }
                 }

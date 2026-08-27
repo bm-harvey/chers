@@ -1,9 +1,6 @@
 use anyhow::Result;
-use chers::chess::{BoardState, Game};
-use chers::core::bits;
-use chers::view;
+use chers::chess::Game;
 use chers::view::{GameViewer, RenderType};
-use rand::prelude::*;
 
 fn main() -> Result<()> {
     let mut game = Game::new();

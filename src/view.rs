@@ -15,6 +15,12 @@ pub struct GameViewer {
     render_type: RenderType,
 }
 
+impl Default for GameViewer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GameViewer {
     pub fn new() -> Self {
         Self {
@@ -92,7 +98,7 @@ impl GameViewer {
         }
     }
 
-    pub fn print_square_idxs(&self) -> () {
+    pub fn print_square_idxs(&self) {
         println!("    a  b  c  d  e  f  g  h");
         println!();
         for rank in (0..8).rev() {
@@ -113,7 +119,7 @@ impl GameViewer {
         println!();
     }
 
-    pub fn plain_print(&self, game: &Game) -> () {
+    pub fn plain_print(&self, game: &Game) {
         let mut out_chars = ['*'; 64];
 
         for square in 0..64 {
@@ -139,7 +145,7 @@ impl GameViewer {
         println!();
     }
 
-    pub fn print_board(labels: &[String]) -> () {
+    pub fn print_board(labels: &[String]) {
         println!();
         println!("   a b c d e f g h");
         for rank in (0..8).rev() {
@@ -155,7 +161,7 @@ impl GameViewer {
         println!();
     }
 
-    pub fn print_legal_moves(&self, game: &Game) -> () {
+    pub fn print_legal_moves(&self, game: &Game) {
         // todo - fix piece detection
         //
         let start = std::time::Instant::now();
@@ -168,15 +174,14 @@ impl GameViewer {
 
         for square in 0..64_usize {
             let (file, rank) = BoardState::square_to_coordinate(square);
-            default_out_strings[square as usize] = match game.board_state().piece_in_square(square)
-            {
+            default_out_strings[square] = match game.board_state().piece_in_square(square) {
                 Some((color, piece)) => {
                     let raw_string = self.string_from_piece(&piece, &PieceColor::Black);
-                    let piece_string = match color {
+
+                    match color {
                         PieceColor::White => raw_string.red().to_string(),
                         PieceColor::Black => raw_string.blue().to_string(),
-                    };
-                    piece_string
+                    }
                 }
 
                 None => {
@@ -210,22 +215,21 @@ impl GameViewer {
 
         dbg!(stop);
     }
-    pub fn print(&self, game: &Game) -> () {
+    pub fn print(&self, game: &Game) {
         let blank = String::from("\u{25A0}");
 
         let mut default_out_strings = vec![blank.clone(); 64];
 
         for square in 0..64_usize {
             let (file, rank) = BoardState::square_to_coordinate(square);
-            default_out_strings[square as usize] = match game.board_state().piece_in_square(square)
-            {
+            default_out_strings[square] = match game.board_state().piece_in_square(square) {
                 Some((color, piece)) => {
                     let raw_string = self.string_from_piece(&piece, &PieceColor::Black);
-                    let piece_string = match color {
+
+                    match color {
                         PieceColor::White => raw_string.red().to_string(),
                         PieceColor::Black => raw_string.blue().to_string(),
-                    };
-                    piece_string
+                    }
                 }
 
                 None => {

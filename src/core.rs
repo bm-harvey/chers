@@ -46,7 +46,7 @@ pub mod bits {
     }
 
     pub fn square_exists_left(square: usize) -> bool {
-        square % 8 > 0
+        !square.is_multiple_of(8)
     }
     pub fn square_exists_right(square: usize) -> bool {
         square % 8 < 7
@@ -116,53 +116,53 @@ pub mod bits {
 
     #[inline]
     pub fn move_one_up_one_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask << VERTICAL - HORIZONTAL
+        coordinate_mask << (VERTICAL - HORIZONTAL)
     }
     #[inline]
     pub fn move_one_down_one_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> VERTICAL - HORIZONTAL
+        coordinate_mask >> (VERTICAL - HORIZONTAL)
     }
     #[inline]
     pub fn move_one_up_one_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask << VERTICAL + HORIZONTAL
+        coordinate_mask << (VERTICAL + HORIZONTAL)
     }
     #[inline]
     pub fn move_one_down_one_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> VERTICAL + HORIZONTAL
+        coordinate_mask >> (VERTICAL + HORIZONTAL)
     }
 
     #[inline]
     pub fn move_two_up_one_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask << 2 * VERTICAL - HORIZONTAL
+        coordinate_mask << (2 * VERTICAL - HORIZONTAL)
     }
     #[inline]
     pub fn move_two_down_one_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> 2 * VERTICAL - HORIZONTAL
+        coordinate_mask >> (2 * VERTICAL - HORIZONTAL)
     }
     #[inline]
     pub fn move_two_up_one_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask << 2 * VERTICAL + HORIZONTAL
+        coordinate_mask << (2 * VERTICAL + HORIZONTAL)
     }
     #[inline]
     pub fn move_two_down_one_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> 2 * VERTICAL + HORIZONTAL
+        coordinate_mask >> (2 * VERTICAL + HORIZONTAL)
     }
 
     #[inline]
     pub fn move_one_up_two_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask << VERTICAL - 2 * HORIZONTAL
+        coordinate_mask << (VERTICAL - 2 * HORIZONTAL)
     }
     #[inline]
     pub fn move_one_down_two_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> VERTICAL - 2 * HORIZONTAL
+        coordinate_mask >> (VERTICAL - 2 * HORIZONTAL)
     }
     #[inline]
     pub fn move_one_up_two_right(coordinate_mask: u64) -> u64 {
-        coordinate_mask << VERTICAL + 2 * HORIZONTAL
+        coordinate_mask << (VERTICAL + 2 * HORIZONTAL)
     }
     #[inline]
     pub fn move_one_down_two_left(coordinate_mask: u64) -> u64 {
-        coordinate_mask >> VERTICAL + 2 * HORIZONTAL
+        coordinate_mask >> (VERTICAL + 2 * HORIZONTAL)
     }
 
     pub fn dbg_mask(mask: u64) {
